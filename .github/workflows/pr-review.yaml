@@ -10,15 +10,32 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # fetch full history for diff
 
       - name: Get PR diff
         run: |
-          git fetch origin ${{ github.base_ref }}
-          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          set -euo pipefail
+          set -x
+
+          # Ensure base branch is fetched
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+
+          # Try to get a diff; fallback if no merge base
+          if git merge-base --is-ancestor origin/${{ github.base_ref }} HEAD; then
+            git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          else
+            echo "⚠️ No merge base found (first commit or unrelated branch). Taking full diff."
+            git diff HEAD > pr.diff
+          fi
+
+          echo "Generated diff:"
+          head -n 50 pr.diff || true
 
       - name: Send diff to review API
         run: |
-          curl -v -X POST http://host.docker.internal:3001/api/code/review \
+          set -x
+          curl -v -X POST http://host.docker.internal:3001/api/review \
             -H "Authorization: Bearer ${{ secrets.REVIEW_BOT_TOKEN }}" \
             -H "Content-Type: text/plain" \
             --data-binary @pr.diff
