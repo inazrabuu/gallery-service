@@ -35,7 +35,7 @@ jobs:
       - name: Send diff to review API
         run: |
           set -x
-          curl -v -X POST http://host.docker.internal:3001/api/review \
+          curl -v -X POST http://host.docker.internal:3001/api/code/review \
             -H "Authorization: Bearer ${{ secrets.REVIEW_BOT_TOKEN }}" \
             -H "Content-Type: text/plain" \
             --data-binary @pr.diff
