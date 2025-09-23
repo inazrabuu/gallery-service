@@ -35,7 +35,13 @@ jobs:
       - name: Send diff to review API
         run: |
           set -x
+          DIFF=$(cat pr.diff | jq -Rs .)
           curl -v -X POST http://host.docker.internal:3001/api/code/review \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: text/plain" \
-            --data-binary @pr.diff
+            -H "Content-Type: application/json" \
+            -d "{
+              \"owner\": \"${{ github.repository_owner }}\",
+              \"repo\": \"${{ github.event.repository.name }}\",
+              \"pr\": \"${{ github.event.pull_request.number }}\",
+              \"diff\": $DIFF
+            }"
